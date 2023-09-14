@@ -367,6 +367,9 @@ fn main() {
         build_snappy();
     }
 
+    println!("cargo:rerun-if-changed=custom_cipher.cc");
+    println!("cargo:rerun-if-changed=custom_cipher.h");
+
     // Allow dependent crates to locate the sources and output directory of
     // this crate. Notably, this allows a dependent crate to locate the RocksDB
     // sources and built archive artifacts provided by this crate.

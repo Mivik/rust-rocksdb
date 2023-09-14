@@ -30,12 +30,9 @@ impl Drop for EnvWrapper {
 }
 
 pub trait CustomCipher {
-    const METADATA_SIZE: usize;
-    const BLOCK_SIZE: usize;
+    fn encrypt_block(&self, block_index: u64, data: &mut [u8], metadata: &mut [u8]) -> bool;
 
-    fn encrypt_block(block_index: u64, data: &mut [u8], metadata: &mut [u8]) -> bool;
-
-    fn decrypt_block(block_index: u64, data: &mut [u8], metadata: &[u8]) -> bool;
+    fn decrypt_block(&self, block_index: u64, data: &mut [u8], metadata: &[u8]) -> bool;
 }
 
 impl Env {
@@ -61,32 +58,57 @@ impl Env {
     }
 
     /// Creates a encrypted environment using custom cipher.
-    pub fn encrypted<C: CustomCipher>() -> Result<Self, Error> {
-        unsafe extern "C" fn encrypt_block<C: CustomCipher>(
+    pub fn encrypted(
+        cipher: Box<dyn CustomCipher + Send + Sync>,
+        metadata_size: usize,
+        block_size: usize,
+    ) -> Result<Self, Error> {
+        struct CipherWrapper {
+            inner: Box<dyn CustomCipher + Send + Sync>,
+            metadata_size: usize,
+            block_size: usize,
+        }
+        unsafe extern "C" fn encrypt_block(
+            userdata: *mut libc::c_void,
             block_index: u64,
             data: *mut libc::c_char,
             metadata: *mut libc::c_char,
         ) -> bool {
-            let data = std::slice::from_raw_parts_mut(data as *mut u8, C::BLOCK_SIZE);
-            let metadata = std::slice::from_raw_parts_mut(metadata as *mut u8, C::METADATA_SIZE);
-            C::encrypt_block(block_index, data, metadata)
+            let cipher = &*(userdata as *const CipherWrapper);
+            let data = std::slice::from_raw_parts_mut(data as *mut u8, cipher.block_size);
+            let metadata =
+                std::slice::from_raw_parts_mut(metadata as *mut u8, cipher.metadata_size);
+            cipher.inner.encrypt_block(block_index, data, metadata)
         }
-        unsafe extern "C" fn decrypt_block<C: CustomCipher>(
+        unsafe extern "C" fn decrypt_block(
+            userdata: *mut libc::c_void,
             block_index: u64,
             data: *mut libc::c_char,
             metadata: *const libc::c_char,
         ) -> bool {
-            let data = std::slice::from_raw_parts_mut(data as *mut u8, C::BLOCK_SIZE);
-            let metadata = std::slice::from_raw_parts(metadata as *const u8, C::METADATA_SIZE);
-            C::decrypt_block(block_index, data, metadata)
+            let cipher = &*(userdata as *const CipherWrapper);
+            let data = std::slice::from_raw_parts_mut(data as *mut u8, cipher.block_size);
+            let metadata = std::slice::from_raw_parts(metadata as *const u8, cipher.metadata_size);
+            cipher.inner.decrypt_block(block_index, data, metadata)
+        }
+        unsafe extern "C" fn destroy(userdata: *mut libc::c_void) {
+            let cipher = userdata as *mut CipherWrapper;
+            cipher.drop_in_place();
         }
 
+        let userdata = Box::leak(Box::new(CipherWrapper {
+            inner: cipher,
+            metadata_size,
+            block_size,
+        }));
         let env = unsafe {
             ffi::rocksdb_create_encrypted_env(
-                C::METADATA_SIZE,
-                C::BLOCK_SIZE,
-                Some(encrypt_block::<C>),
-                Some(decrypt_block::<C>),
+                userdata as *mut _ as _,
+                metadata_size,
+                block_size,
+                Some(encrypt_block),
+                Some(decrypt_block),
+                Some(destroy),
             )
         } as *mut ffi::rocksdb_env_t;
         if env.is_null() {

@@ -23,14 +23,16 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
-extern ROCKSDB_LIBRARY_API void *rocksdb_create_encrypted_env(
-    size_t metadata_size, size_t block_size,
-    bool (*encrypt_block)(uint64_t block_index, char *data, char *metadata),
-    bool (*decrypt_block)(uint64_t block_index, char *data,
-                          const char *metadata));
+typedef struct rocksdb_env_t rocksdb_env_t;
+
+extern ROCKSDB_LIBRARY_API rocksdb_env_t *rocksdb_create_encrypted_env(
+    void *userdata, size_t metadataSize, size_t blockSize,
+    bool (*encryptBlock)(void *userdata, uint64_t blockIndex, char *data,
+                          char *metadata),
+    bool (*decryptBlock)(void *userdata, uint64_t blockIndex, char *data,
+                          const char *metadata),
+    void (*destroy)(void *userdata));
 
 #ifdef __cplusplus
 }
 #endif
-
-#undef ROCKSDB_LIBRARY_API
