@@ -119,7 +119,7 @@ pub use crate::{
         ReadOptions, UniversalCompactOptions, UniversalCompactionStopStyle, WriteOptions,
     },
     db_pinnable_slice::DBPinnableSlice,
-    env::Env,
+    env::{CustomCipher, Env},
     ffi_util::CStrLike,
     iter_range::{IterateBounds, PrefixRange},
     merge_operator::MergeOperands,

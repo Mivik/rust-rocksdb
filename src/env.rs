@@ -29,6 +29,15 @@ impl Drop for EnvWrapper {
     }
 }
 
+pub trait CustomCipher {
+    const METADATA_SIZE: usize;
+    const BLOCK_SIZE: usize;
+
+    fn encrypt_block(block_index: u64, data: &mut [u8], metadata: &mut [u8]) -> bool;
+
+    fn decrypt_block(block_index: u64, data: &mut [u8], metadata: &[u8]) -> bool;
+}
+
 impl Env {
     /// Returns default env
     pub fn new() -> Result<Self, Error> {
@@ -46,6 +55,42 @@ impl Env {
         let env = unsafe { ffi::rocksdb_create_mem_env() };
         if env.is_null() {
             Err(Error::new("Could not create mem env".to_owned()))
+        } else {
+            Ok(Self(Arc::new(EnvWrapper { inner: env })))
+        }
+    }
+
+    /// Creates a encrypted environment using custom cipher.
+    pub fn encrypted<C: CustomCipher>() -> Result<Self, Error> {
+        unsafe extern "C" fn encrypt_block<C: CustomCipher>(
+            block_index: u64,
+            data: *mut libc::c_char,
+            metadata: *mut libc::c_char,
+        ) -> bool {
+            let data = std::slice::from_raw_parts_mut(data as *mut u8, C::BLOCK_SIZE);
+            let metadata = std::slice::from_raw_parts_mut(metadata as *mut u8, C::METADATA_SIZE);
+            C::encrypt_block(block_index, data, metadata)
+        }
+        unsafe extern "C" fn decrypt_block<C: CustomCipher>(
+            block_index: u64,
+            data: *mut libc::c_char,
+            metadata: *const libc::c_char,
+        ) -> bool {
+            let data = std::slice::from_raw_parts_mut(data as *mut u8, C::BLOCK_SIZE);
+            let metadata = std::slice::from_raw_parts(metadata as *const u8, C::METADATA_SIZE);
+            C::decrypt_block(block_index, data, metadata)
+        }
+
+        let env = unsafe {
+            ffi::rocksdb_create_encrypted_env(
+                C::METADATA_SIZE,
+                C::BLOCK_SIZE,
+                Some(encrypt_block::<C>),
+                Some(decrypt_block::<C>),
+            )
+        } as *mut ffi::rocksdb_env_t;
+        if env.is_null() {
+            Err(Error::new("Could not create encrypted env".to_owned()))
         } else {
             Ok(Self(Arc::new(EnvWrapper { inner: env })))
         }
