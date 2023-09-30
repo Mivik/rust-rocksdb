@@ -1,5 +1,5 @@
 [package]
-name = "rocksdb"
+name = "bijou-rocksdb"
 description = "Rust wrapper for Facebook's RocksDB embeddable database"
 version = "0.21.0"
 edition = "2018"
@@ -18,25 +18,25 @@ exclude = [
 ]
 
 [workspace]
-members = ["librocksdb-sys"]
+members = ["bijou-librocksdb-sys"]
 
 [features]
 default = ["snappy", "lz4", "zstd", "zlib", "bzip2"]
-jemalloc = ["librocksdb-sys/jemalloc"]
-io-uring = ["librocksdb-sys/io-uring"]
+jemalloc = ["bijou-librocksdb-sys/jemalloc"]
+io-uring = ["bijou-librocksdb-sys/io-uring"]
 valgrind = []
-snappy = ["librocksdb-sys/snappy"]
-lz4 = ["librocksdb-sys/lz4"]
-zstd = ["librocksdb-sys/zstd"]
-zlib = ["librocksdb-sys/zlib"]
-bzip2 = ["librocksdb-sys/bzip2"]
-rtti = ["librocksdb-sys/rtti"]
+snappy = ["bijou-librocksdb-sys/snappy"]
+lz4 = ["bijou-librocksdb-sys/lz4"]
+zstd = ["bijou-librocksdb-sys/zstd"]
+zlib = ["bijou-librocksdb-sys/zlib"]
+bzip2 = ["bijou-librocksdb-sys/bzip2"]
+rtti = ["bijou-librocksdb-sys/rtti"]
 multi-threaded-cf = []
 serde1 = ["serde"]
 
 [dependencies]
 libc = "0.2"
-librocksdb-sys = { path = "librocksdb-sys", version = "0.11.0" }
+bijou-librocksdb-sys = { path = "bijou-librocksdb-sys", version = "0.11.0" }
 serde = { version = "1", features = [ "derive" ], optional = true }
 
 [dev-dependencies]
