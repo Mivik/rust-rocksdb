@@ -52,19 +52,19 @@ protected:
   }
 
   Status EncryptBlock(uint64_t blockIndex, char *data, char *scratch) override {
-    fseeko64(_file, blockIndex * _cipher.MetadataSize, SEEK_SET);
+    fseeko(_file, blockIndex * _cipher.MetadataSize, SEEK_SET);
     size_t read = fread(scratch, 1, _cipher.MetadataSize, _file);
     memset(scratch + read, 0, _cipher.MetadataSize - read);
     if (!_cipher.EncryptBlock(_cipher.userdata, blockIndex, data, scratch)) {
       return Status::Corruption();
     }
-    fseeko64(_file, blockIndex * _cipher.MetadataSize, SEEK_SET);
+    fseeko(_file, blockIndex * _cipher.MetadataSize, SEEK_SET);
     fwrite(scratch, _cipher.MetadataSize, 1, _file);
     return Status::OK();
   }
 
   Status DecryptBlock(uint64_t blockIndex, char *data, char *scratch) override {
-    fseeko64(_file, blockIndex * _cipher.MetadataSize, SEEK_SET);
+    fseeko(_file, blockIndex * _cipher.MetadataSize, SEEK_SET);
     size_t read = fread(scratch, 1, _cipher.MetadataSize, _file);
     memset(scratch + read, 0, _cipher.MetadataSize - read);
     if (!_cipher.DecryptBlock(_cipher.userdata, blockIndex, data, scratch)) {

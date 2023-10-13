@@ -1,7 +1,7 @@
 [package]
 name = "bijou-rocksdb"
 description = "Rust wrapper for Facebook's RocksDB embeddable database"
-version = "0.21.0"
+version = "0.21.1"
 edition = "2018"
 rust-version = "1.63"
 authors = ["Tyler Neely <t@jujit.su>", "David Greenberg <dsg123456789@gmail.com>"]
@@ -36,7 +36,7 @@ serde1 = ["serde"]
 
 [dependencies]
 libc = "0.2"
-bijou-librocksdb-sys = { path = "bijou-librocksdb-sys", version = "0.11.0" }
+bijou-librocksdb-sys = { path = "bijou-librocksdb-sys", version = "0.11.1" }
 serde = { version = "1", features = [ "derive" ], optional = true }
 
 [dev-dependencies]
